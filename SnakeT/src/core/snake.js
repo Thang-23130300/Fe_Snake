@@ -19,7 +19,7 @@ export class snake{
         this.direction = DIRECTIONS.RIGHT;
         this.nextDirection = DIRECTIONS.RIGHT;
     }
-    setDirection(newdir) {
+    setDirection(newDir) {
         const isOpposite =
             (newDir === DIRECTIONS.UP && this.direction === DIRECTIONS.DOWN) ||
             (newDir === DIRECTIONS.DOWN && this.direction === DIRECTIONS.UP) ||
