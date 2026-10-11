@@ -1,7 +1,7 @@
 import {BOARD_CONFIG} from "../Config.js";
 export class food{
     constructor(x, y) {
-        this.position ={ x: 0, y: 0 } ;
+        this.position = null ;
     }
     spawn(snakeBody) {
         while (true) {

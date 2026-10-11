@@ -1,28 +1,36 @@
-import {Snake} from './Core/Snake.js';
+import { snake } from "./Core/Snake.js";
+import { food } from "./Core/Food.js";
+import { level1 } from "./Levels/Level1.js";
+import {DIRECTIONS} from "./Config.js";
 
-const testSnake = new Snake(3);
+const snakeT = new snake();
+const foodT = new food();
+const level1T = new level1();
+// playing
+// snakeT.body = [
+//     { x: 4, y: 5 },
+//     { x: 3, y: 5 },
+//     { x: 2, y: 5 }
+// ];
+//
+// foodT.position = { x: 5, y: 5 };
+// console.log("before:", snakeT.body.length);
+// const result = level1T.update(snakeT, foodT);
+// console.log("status:", result);
+// console.log("after:", snakeT.body.length);
+// console.log("new food:", foodT.position);
 
- console.log("testSnake", testSnake.body);
- console.log("length", testSnake.body.length);
-
-testSnake.body = [
-    { x: 4, y: 2 },
-    { x: 3, y: 2 },
-    { x: 3, y: 3 },
-    { x: 4, y: 3 }
+// game over
+snakeT.body = [
+    { x: 5, y: 5 },
+    { x: 5, y: 4 },
+    { x: 6, y: 4 },
+    { x: 6, y: 5 },
+    { x: 6, y: 6 }
 ];
-
-// Test1 : di vao o duoi , khong an qua
-console.log("Test 1:", testSnake.selfCollision({ x: 4, y: 3 }, false));
-// Test2 : di vao o duoi , co an qua
-console.log("Test 2:", testSnake.selfCollision({ x: 4, y: 3 }, true));
-// Test3 : di vao thanh
-console.log("Test 3:", testSnake.selfCollision({ x: 3, y: 2 }, false));
-// Test4 di vao o trong
-console.log("Test 4:", testSnake.selfCollision({ x: 5, y: 2 }, false));
-
-// test move
-testSnake.move({ x: 5, y: 2 }, false);
-
-console.log("sau di chuyen", testSnake.body);
-console.log("leghth", testSnake.body.length);
+snakeT.direction = DIRECTIONS.RIGHT;
+snakeT.nextDirection = DIRECTIONS.RIGHT;
+foodT.position = { x: 10, y: 10 };
+const result = level1T.update(snakeT, foodT);
+console.log("status:", result);
+console.log("body:", snakeT.body);

@@ -1,6 +1,6 @@
 import {DIRECTIONS,BOARD_CONFIG } from "../Config.js";
 
-export class Snake{
+export class snake{
     constructor(length = 3 ) {
         this.length = length;
         this.reset();
