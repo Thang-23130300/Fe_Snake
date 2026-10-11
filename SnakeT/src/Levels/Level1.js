@@ -1,4 +1,4 @@
-import {BOARD_CONFIG} from "../config";
+import {BOARD_CONFIG} from "../Config.js";
 export class level1{
     getNextHead(head, direction) {
         let nextX = head.x +direction.x;

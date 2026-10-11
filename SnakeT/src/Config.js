@@ -3,7 +3,7 @@ export const BOARD_CONFIG ={
 };
 export const SNAKE_LIMIT = {
     MIN_LENGTH : 3 ,
-    MAX_LEGHTH : 10,
+    MAX_LENGTH : 10,
     MIN_SPEED : 50,
     MAX_SPEED : 300
 };

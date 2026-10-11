@@ -1,7 +1,6 @@
-import {DIRECTIONS} from "../config";
-import {BOARD_CONFIG} from "../config";
+import {DIRECTIONS,BOARD_CONFIG } from "../Config.js";
 
-export class snake{
+export class Snake{
     constructor(length = 3 ) {
         this.length = length;
         this.reset();
@@ -29,7 +28,20 @@ export class snake{
             this.nextDirection = newDir;
         }
     }
-
-
-
+    move(nextHead, shouldGrow = false) {
+        this.direction = this.nextDirection;
+        this.body.unshift(nextHead);
+        if(!shouldGrow){
+            this.body.pop();
+        }
+    }
+    selfCollision(nextHead, shouldGrow = false) {
+        let segmentToCheck
+        if(shouldGrow === true){
+            segmentToCheck = this.body;
+        } else {
+            segmentToCheck = this.body.slice(0,-1);
+        }
+         return segmentToCheck.some(segment => segment.x === nextHead.x && segment.y === nextHead.y);
+    }
 }
