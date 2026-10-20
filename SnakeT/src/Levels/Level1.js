@@ -1,5 +1,9 @@
 import {BOARD_CONFIG} from "../Config.js";
 export class level1{
+    constructor(){
+        this.countFood = 0;
+        this.targetFood = 20 ;
+    }
     getNextHead(head, direction) {
         let nextX = head.x +direction.x;
         let nextY = head.y +direction.y;
@@ -24,7 +28,11 @@ export class level1{
             snake.move(nextHead, shouldGrow);
         }
         if (shouldGrow == true) {
-            food.spawn(snake.body);
+            this.countFood += 1;
+            if (this.countFood >= this.targetFood) {
+                return "win" ;
+            }
+            food.spawn(snake.body)
         }
         return "playing";
     }

@@ -6,31 +6,24 @@ import {DIRECTIONS} from "./Config.js";
 const snakeT = new snake();
 const foodT = new food();
 const level1T = new level1();
-// playing
-// snakeT.body = [
-//     { x: 4, y: 5 },
-//     { x: 3, y: 5 },
-//     { x: 2, y: 5 }
-// ];
-//
-// foodT.position = { x: 5, y: 5 };
-// console.log("before:", snakeT.body.length);
-// const result = level1T.update(snakeT, foodT);
-// console.log("status:", result);
-// console.log("after:", snakeT.body.length);
-// console.log("new food:", foodT.position);
 
-// game over
 snakeT.body = [
     { x: 5, y: 5 },
-    { x: 5, y: 4 },
-    { x: 6, y: 4 },
-    { x: 6, y: 5 },
-    { x: 6, y: 6 }
+    { x: 4, y: 5 },
+    { x: 3, y: 5 }
 ];
+
 snakeT.direction = DIRECTIONS.RIGHT;
 snakeT.nextDirection = DIRECTIONS.RIGHT;
-foodT.position = { x: 10, y: 10 };
+
+foodT.position = { x: 6, y: 5 };
+
+level1T.countFood = 19;
+level1T.targetFood = 20;
+
 const result = level1T.update(snakeT, foodT);
+
 console.log("status:", result);
+console.log("countFood:", level1T.countFood);
+console.log("length:", snakeT.body.length);
 console.log("body:", snakeT.body);
