@@ -82,8 +82,11 @@ class Food {
 // 1 : level 1
 class Level1 {
     constructor() {
-        this.countFood = 0;
+        this.name = "Level 1";
+        this.description = "Rắn có thể đi xuyên qua các cạnh của bản đồ và xuất hiện ở cạnh đối diện.";
         this.targetFood = 20;
+        this.winCondition = `Ăn đủ ${this.targetFood} food để chiến thắng.`;
+        this.countFood = 0;
     }
 
     getNextHead(head, direction) {
@@ -126,6 +129,9 @@ class Renderer {
         this.board = document.getElementById("game-board");
         this.score = document.getElementById("score");
         this.status = document.getElementById("status");
+        this.currentLevel = document.getElementById("current-level");
+        this.levelDescription = document.getElementById("level-description");
+        this.winCondition = document.getElementById("win-condition");
         this.cells = [];
         this.createBoard();
     }
@@ -156,6 +162,13 @@ class Renderer {
         this.renderSnake(snake);
         this.score.textContent = `Food: ${level.countFood}`;
         this.status.textContent = gameStatus;
+        this.renderLevelInfo(level);
+    }
+
+    renderLevelInfo(level) {
+        this.currentLevel.textContent = level.name;
+        this.levelDescription.textContent = level.description;
+        this.winCondition.textContent = level.winCondition;
     }
 
     clearBoard() {
