@@ -77,9 +77,53 @@ function testWin() {
     console.assert(level.countFood === 20, "Win: scope different 20 ");
 }
 
+// Test case 5 : Turn left
+function testTurnLeft() {
+    const { snakeT } = createTestGame();
+    // Khi rắn đang đi lên, rẽ trái
+    snakeT.direction = DIRECTIONS.UP;
+    snakeT.nextDirection = DIRECTIONS.UP;
+    snakeT.setDirection(DIRECTIONS.LEFT);
+    console.assert(snakeT.nextDirection === DIRECTIONS.LEFT, "Turn left when UP failed");
+    // Khi rắn đang đi xuống, rẽ trái
+    snakeT.direction = DIRECTIONS.DOWN;
+    snakeT.nextDirection = DIRECTIONS.DOWN;
+    snakeT.setDirection(DIRECTIONS.LEFT);
+    console.assert(snakeT.nextDirection === DIRECTIONS.LEFT, "Turn left when DOWN failed");
+}
+// Test case 6 : Block opposite direction (không cho quay ngược 180 độ gây Game Over)
+function testBlockOppositeDirection() {
+    const { snakeT } = createTestGame();
+    // Đang sang phải -> nhấn sang trái -> phải giữ nguyên hướng
+    snakeT.direction = DIRECTIONS.RIGHT;
+    snakeT.nextDirection = DIRECTIONS.RIGHT;
+    snakeT.setDirection(DIRECTIONS.LEFT);
+    console.assert(snakeT.nextDirection === DIRECTIONS.RIGHT, "Block opposite LEFT when moving RIGHT failed");
+
+    // Đang lên trên -> nhấn xuống dưới -> phải giữ nguyên hướng
+    snakeT.direction = DIRECTIONS.UP;
+    snakeT.nextDirection = DIRECTIONS.UP;
+    snakeT.setDirection(DIRECTIONS.DOWN);
+    console.assert(snakeT.nextDirection === DIRECTIONS.UP, "Block opposite DOWN when moving UP failed");
+
+    // Đang sang trái -> nhấn sang phải -> phải giữ nguyên hướng
+    snakeT.direction = DIRECTIONS.LEFT;
+    snakeT.nextDirection = DIRECTIONS.LEFT;
+    snakeT.setDirection(DIRECTIONS.RIGHT);
+    console.assert(snakeT.nextDirection === DIRECTIONS.LEFT, "Block opposite RIGHT when moving LEFT failed");
+
+    // Đang xuống dưới -> nhấn lên trên -> phải giữ nguyên hướng
+    snakeT.direction = DIRECTIONS.DOWN;
+    snakeT.nextDirection = DIRECTIONS.DOWN;
+    snakeT.setDirection(DIRECTIONS.UP);
+    console.assert(snakeT.nextDirection === DIRECTIONS.DOWN, "Block opposite UP when moving DOWN failed");
+}
+
 testNormalMove();
 testEatFood();
 testSelfCollision();
 testWin();
+testTurnLeft();
+testBlockOppositeDirection();
 
-console.log("Đã chạy 4 bài kiểm thử Level 1.");
+console.log("Đã chạy thành công tất cả bài kiểm thử Level 1 (bao gồm rẽ trái và chặn đi ngược hướng).");

@@ -1,7 +1,7 @@
 import { DIRECTIONS } from "./Config.js";
-import { Snake } from "./Core/Snake.js";
-import { Food } from "./Core/Food.js";
-import { Level1 } from "./Levels/Level1.js";
+import { snake as Snake } from "./Core/Snake.js";
+import { food as Food } from "./Core/Food.js";
+import { level1 as Level1 } from "./Levels/Level1.js";
 import { Renderer } from "./UI/Renderer.js";
 
 const snakeT = new Snake();
@@ -18,7 +18,7 @@ snakeT.reset();
 foodT.spawn(snakeT.body);
 renderer.render(snakeT, foodT, level1T, gameStatus);
 
-function startGame(level1, snake, food) {
+function startGame(level1, snakeT, foodT) {
     if (gameStatus !== "ready" && gameStatus !== "paused") {
         return;
     }
@@ -27,20 +27,20 @@ function startGame(level1, snake, food) {
     }
     gameStatus = "playing";
     directionChanged = false;
-    renderer.render(snake, food, level1, gameStatus);
-    gameLoop = setInterval(() => {play(level1, snake, food);}, speed);
+    renderer.render(snakeT, foodT, level1, gameStatus);
+    gameLoop = setInterval(() => {play(level1, snakeT, foodT);}, speed);
 }
 
-function play(level1, snake, food) {
+function play(level1, snakeT, foodT) {
     if (gameStatus !== "playing") {
         return;
     }
-    const status = level1.update(snake, food);
+    const status = level1.update(snakeT, foodT);
     gameStatus = status;
     directionChanged = false;
-    renderer.render(snake, food, level1, gameStatus);
+    renderer.render(snakeT, foodT, level1, gameStatus);
     console.log("Status:", gameStatus);
-    console.log("Snake head:", snake.body[0]);
+    console.log("Snake head:", snakeT.body[0]);
     if (status === "win" || status === "gameover") {
         stopGameLoop();
         console.log(status === "win" ? "YOU WIN!" : "GAME OVER!");
@@ -57,11 +57,11 @@ function pauseGame() {
     console.log("Game Paused");
 }
 
-function resumeGame(level1, snake, food) {
+function resumeGame(level1, snakeT, foodT) {
     if (gameStatus !== "paused") {
         return;
     }
-    startGame(level1, snake, food);
+    startGame(level1, snakeT, foodT);
     console.log("Game Resumed");
 }
 function restartGame() {
@@ -109,9 +109,21 @@ document.addEventListener("keydown", (event) => {
         ArrowUp: DIRECTIONS.UP,
         ArrowDown: DIRECTIONS.DOWN,
         ArrowLeft: DIRECTIONS.LEFT,
-        ArrowRight: DIRECTIONS.RIGHT
+        ArrowRight: DIRECTIONS.RIGHT,
+        KeyW: DIRECTIONS.UP,
+        KeyS: DIRECTIONS.DOWN,
+        KeyA: DIRECTIONS.LEFT,
+        KeyD: DIRECTIONS.RIGHT,
+        w: DIRECTIONS.UP,
+        s: DIRECTIONS.DOWN,
+        a: DIRECTIONS.LEFT,
+        d: DIRECTIONS.RIGHT,
+        W: DIRECTIONS.UP,
+        S: DIRECTIONS.DOWN,
+        A: DIRECTIONS.LEFT,
+        D: DIRECTIONS.RIGHT
     };
-    const newDirection = keyMap[event.key];
+    const newDirection = keyMap[event.key] || keyMap[event.code];
     if (newDirection === undefined) {
         return;
     }

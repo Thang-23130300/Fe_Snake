@@ -35,17 +35,10 @@ export class snake{
         this.nextDirection = DIRECTIONS.RIGHT;
     }
     setDirection(newDirection) {
-        const opposite = {
-            [DIRECTIONS.UP]: DIRECTIONS.DOWN,
-            [DIRECTIONS.DOWN]: DIRECTIONS.UP,
-            [DIRECTIONS.LEFT]: DIRECTIONS.RIGHT,
-            [DIRECTIONS.RIGHT]: DIRECTIONS.LEFT
-        };
-
-        if (newDirection === opposite[this.direction]) {
+        if (!newDirection) return;
+        if (newDirection.x + this.direction.x === 0 && newDirection.y + this.direction.y === 0) {
             return;
         }
-
         this.nextDirection = newDirection;
     }
     move(nextHead, shouldGrow = false) {
