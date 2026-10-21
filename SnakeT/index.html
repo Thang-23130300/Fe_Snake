@@ -11,42 +11,80 @@
 
 <div class="game-container">
     <h1>SnakeT-Handsome</h1>
+    <div class="game-layout">
+        <aside class="left-panel">
+            <h2>Chọn Levels</h2>
+            <div class="level-list">
+                <button class="level-btn active" data-level="1">Level 1</button>
+                <button class="level-btn" data-level="2" disabled>Level 2</button>
+                <button class="level-btn" data-level="3" disabled>Level 3</button>
+                <button class="level-btn" data-level="4" disabled>Level 4</button>
+                <button class="level-btn" data-level="5" disabled>Level 5</button>
+                <button class="level-btn" data-level="6" disabled>Level 6</button>
+            </div>
+            <div class="level-description">
+                <h3>Mô tả Level</h3>
+                <p id="level-description">Level 1: Rắn ăn mồi.</p>
+            </div>
+            <select id="level-select" hidden>
+                <option value="1">Level 1</option>
+                <option value="2" disabled>Level 2</option>
+                <option value="3" disabled>Level 3</option>
+                <option value="4" disabled>Level 4</option>
+                <option value="5" disabled>Level 5</option>
+                <option value="6" disabled>Level 6</option>
+            </select>
+        </aside>
+        <main class="center-panel">
+            <div class="game-info">
+                <span id="current-level">Level 1</span>
+                <span id="score">Food: 0</span>
+            </div>
+            <div id="game-board"></div>
+            <div class="game-controls">
+                <button id="start-btn">Start</button>
+                <button id="pause-btn">Pause</button>
+                <button id="restart-btn">Restart</button>
+            </div>
+            <div id="status">ready</div>
+        </main>
+        <aside class="right-panel">
+            <div class="game-settings">
+                <label for="snake-length">Độ dài rắn</label>
+                <select id="snake-length">
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                </select>
+                <label for="game-speed">Tốc độ (ms)</label>
+                <select id="game-speed">
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="150">150</option>
+                    <option value="200" selected>200</option>
+                    <option value="250">250</option>
+                    <option value="300">300</option>
+                </select>
+            </div>
 
-    <div class="game-info">
-        <span>Level: 1</span>
-        <span id="score">Food: 0 / 20</span>
-        <span id="status">Ready</span>
-    </div>
-    <div class="game-settings" id="game-settings">
-        <h2>Game Settings</h2>
-
-        <label for="level-select">Level</label>
-        <select id="level-select">
-            <option value="1">Level 1</option>
-            <option value="2" disabled>Level 2</option>
-            <option value="3" disabled>Level 3</option>
-            <option value="4" disabled>Level 4</option>
-            <option value="5" disabled>Level 5</option>
-            <option value="6" disabled>Level 6</option>
-        </select>
-
-        <label for="snake-length">Snake Length</label>
-        <input type="number" id="snake-length"
-               min="3" max="10" value="3">
-
-        <label for="game-speed">Speed (ms)</label>
-        <input type="number" id="game-speed"
-               min="50" max="300" step="10" value="200">
-    </div>
-    <div id="game-board"></div>
-
-    <div class="game-controls">
-        <button id="start-btn">Start</button>
-        <button id="pause-btn">Pause</button>
-        <button id="restart-btn">Restart</button>
+            <div class="win-condition">
+                <h3>Điều kiện thắng</h3>
+                <p>Ăn đủ 20 food</p>
+            </div>
+            <div class="key-list">
+                <h3>Key List</h3>
+                <p>↑ ↓ ← → : Di chuyển</p>
+                <p>W A S D : Di chuyển</p>
+                <p>Space : Pause / Resume</p>
+            </div>
+        </aside>
     </div>
 </div>
-
 <script src="./game.js"></script>
 </body>
 </html>

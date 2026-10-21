@@ -154,7 +154,7 @@ class Renderer {
         this.clearBoard();
         this.renderFood(food);
         this.renderSnake(snake);
-        this.score.textContent = `Food: ${level.countFood} / ${level.targetFood}`;
+        this.score.textContent = `Food: ${level.countFood}`;
         this.status.textContent = gameStatus;
     }
 
