@@ -82,6 +82,23 @@ button:disabled {
     line-height: 1.5;
     margin: 5px 0;
 }
+.level-description h3 {
+    font-size: 17px;
+    font-weight: bold;
+    margin: 0 0 5px;
+}
+
+.level-description h4 {
+    font-size: 15px;
+    font-weight: bold;
+    margin: 0 0 12px;
+}
+
+.level-description p {
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+}
 .game-info {
     display: flex;
     justify-content: space-between;

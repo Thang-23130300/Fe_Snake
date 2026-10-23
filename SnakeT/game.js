@@ -83,6 +83,7 @@ class Food {
 class Level1 {
     constructor() {
         this.name = "Level 1";
+        this.title = "Classic Snake";
         this.description = "Rắn có thể đi xuyên qua các cạnh của bản đồ và xuất hiện ở cạnh đối diện.";
         this.targetFood = 20;
         this.winCondition = `Ăn đủ ${this.targetFood} food để chiến thắng.`;
@@ -99,26 +100,27 @@ class Level1 {
         return { x: nextX, y: nextY };
     }
 
-    update(snake, food) {
-        const head = snake.body[0];
-        const nextHead = this.getNextHead(head, snake.nextDirection);
+    update(snakeT, foodT) {
+        const head = snakeT.body[0];
+        const nextHead = this.getNextHead(head, snakeT.nextDirection);
         let shouldGrow = false;
-        if (nextHead.x === food.position.x && nextHead.y === food.position.y) {
+        if (nextHead.x === foodT.position.x && nextHead.y === foodT.position.y) {
             shouldGrow = true;
         }
-        const isLose = snake.selfCollision(nextHead, shouldGrow);
-        if (isLose === true) {
+        const isLose = snakeT.selfCollision(nextHead, shouldGrow);
+        if (isLose == true) {
             console.log("Game Over");
             return "gameover";
         } else {
-            snake.move(nextHead, shouldGrow);
+            snakeT.move(nextHead, shouldGrow);
         }
-        if (shouldGrow === true) {
+        if (shouldGrow == true) {
             this.countFood += 1;
             if (this.countFood >= this.targetFood) {
+                foodT.position = null ;
                 return "win";
             }
-            food.spawn(snake.body);
+            foodT.spawn(snakeT.body);
         }
         return "playing";
     }
@@ -129,6 +131,8 @@ class Renderer {
         this.board = document.getElementById("game-board");
         this.score = document.getElementById("score");
         this.status = document.getElementById("status");
+        this.levelNumber = document.getElementById("level-number");
+        this.levelTitle = document.getElementById("level-title");
         this.currentLevel = document.getElementById("current-level");
         this.levelDescription = document.getElementById("level-description");
         this.winCondition = document.getElementById("win-condition");
@@ -156,19 +160,21 @@ class Renderer {
         return this.cells[index];
     }
 
-    render(snake, food, level, gameStatus) {
+    render(snakeT, foodT, level1T, gameStatus) {
         this.clearBoard();
-        this.renderFood(food);
-        this.renderSnake(snake);
-        this.score.textContent = `Food: ${level.countFood}`;
+        this.renderFood(foodT);
+        this.renderSnake(snakeT);
+        this.score.textContent = `Food: ${level1T.countFood}`;
         this.status.textContent = gameStatus;
-        this.renderLevelInfo(level);
+        this.renderLevelInfo(level1T);
     }
 
-    renderLevelInfo(level) {
-        this.currentLevel.textContent = level.name;
-        this.levelDescription.textContent = level.description;
-        this.winCondition.textContent = level.winCondition;
+    renderLevelInfo(level1T) {
+        this.currentLevel.textContent = level1T.name;
+        this.levelNumber.textContent = level1T.name;
+        this.levelTitle.textContent = level1T.title;
+        this.levelDescription.textContent = level1T.description;
+        this.winCondition.textContent = level1T.winCondition;
     }
 
     clearBoard() {
@@ -177,8 +183,8 @@ class Renderer {
         }
     }
 
-    renderSnake(snake) {
-        snake.body.forEach((segment, index) => {const cell = this.getCell(segment.x, segment.y);
+    renderSnake(snakeT) {
+        snakeT.body.forEach((segment, index) => {const cell = this.getCell(segment.x, segment.y);
             if (!cell) return;
             cell.classList.add("snake");
             if (index === 0) {
@@ -187,9 +193,9 @@ class Renderer {
         });
     }
 
-    renderFood(food) {
-        if (!food.position) return;
-        const { x, y } = food.position;
+    renderFood(foodT) {
+        if (!foodT.position) return;
+        const { x, y } = foodT.position;
         const cell = this.getCell(x, y);
         if (cell) {
             cell.classList.add("food");
@@ -212,7 +218,7 @@ let gameLoop = null;
 let speed = 200;
 let directionChanged = false;
 
-function startGame(level1, snakeT, foodT) {
+function startGame(level1T, snakeT, foodT) {
     if (gameStatus !== "ready" && gameStatus !== "paused") {
         return;
     }
@@ -221,24 +227,30 @@ function startGame(level1, snakeT, foodT) {
     }
     gameStatus = "playing";
     directionChanged = false;
-    renderer.render(snakeT, foodT, level1, gameStatus);
-    gameLoop = setInterval(() => { play(level1, snakeT, foodT); }, speed);
+    renderer.render(snakeT, foodT, level1T, gameStatus);
+    gameLoop = setInterval(() => { play(level1T, snakeT, foodT); }, speed);
 }
 
-function play(level1, snakeT, foodT) {
+function play(level1T, snakeT, foodT) {
     if (gameStatus !== "playing") {
         return;
     }
-    const status = level1.update(snakeT, foodT);
+    const status = level1T.update(snakeT, foodT);
     gameStatus = status;
     directionChanged = false;
-    renderer.render(snakeT, foodT, level1, gameStatus);
+    renderer.render(snakeT, foodT, level1T, gameStatus);
     console.log("Status:", gameStatus);
     console.log("Snake head:", snakeT.body[0]);
     if (status === "win" || status === "gameover") {
         stopGameLoop();
-        console.log(status === "win" ? "YOU WIN!" : "GAME OVER!");
-    }
+        setTimeout(() => {
+            if (status === "win") {
+                alert("YOU WIN");
+            } else {
+                alert("GAME OVER");
+            }
+        }, 100);
+        }
 }
 
 function pauseGame() {
@@ -251,11 +263,11 @@ function pauseGame() {
     console.log("Game Paused");
 }
 
-function resumeGame(level1, snakeT, foodT) {
+function resumeGame(level1T, snakeT, foodT) {
     if (gameStatus !== "paused") {
         return;
     }
-    startGame(level1, snakeT, foodT);
+    startGame(level1T, snakeT, foodT);
     console.log("Game Resumed");
 }
 
@@ -319,6 +331,16 @@ function initGameApp() {
         if (activeElement && (activeElement.tagName === "INPUT" || activeElement.tagName === "SELECT" || activeElement.tagName === "TEXTAREA")) {
             return;
         }
+        if (event.code === "Enter") {
+            event.preventDefault();
+            if (event.repeat) {
+                return;
+            }
+            if (gameStatus === "ready") {
+                document.getElementById("start-btn").click();
+            }
+            return;
+        }
 
         if (event.code === "Space") {
             event.preventDefault();
@@ -330,6 +352,15 @@ function initGameApp() {
             } else if (gameStatus === "paused") {
                 resumeGame(level1T, snakeT, foodT);
             }
+            return;
+        }
+
+        if (event.code === "Backspace") {
+            event.preventDefault();
+            if (event.repeat) {
+                return;
+            }
+            document.getElementById("restart-btn").click();
             return;
         }
 
