@@ -1,3 +1,4 @@
+// base parameter default
 const BOARD_CONFIG = { WIDTH: 17, HEIGHT: 15 };
 
 const SNAKE_LIMIT = {
@@ -65,16 +66,24 @@ class Food {
         this.position = null;
     }
 
-    spawn(snakeBody) {
-        while (true) {
-            const foodX = Math.floor(Math.random() * BOARD_CONFIG.WIDTH);
-            const foodY = Math.floor(Math.random() * BOARD_CONFIG.HEIGHT);
-            const isOnSnake = snakeBody.some(segment => segment.x === foodX && segment.y === foodY);
-            if (!isOnSnake) {
-                this.position = { x: foodX, y: foodY };
-                break;
+    spawn(snakeBody, blockedCells = []) {
+        const availableCells = [];
+        for (let y = 0; y < BOARD_CONFIG.HEIGHT; y++) {
+            for (let x = 0; x < BOARD_CONFIG.WIDTH; x++) {
+                const isOnSnake = snakeBody.some(segment => segment.x === x && segment.y === y);
+                const isBlocked = blockedCells.some(cell => cell.x === x && cell.y === y);
+                if (!isOnSnake && !isBlocked) {
+                    availableCells.push({ x, y });
+                }
             }
         }
+        if (availableCells.length === 0) {
+            this.position = null;
+            return false;
+        }
+        const randomIndex = Math.floor(Math.random() * availableCells.length);
+        this.position = availableCells[randomIndex];
+        return true;
     }
 }
 
@@ -125,6 +134,52 @@ class Level1 {
         return "playing";
     }
 }
+// level 2
+class Level2 {
+    constructor() {
+        this.name = "Level 2";
+        this.title = "Wall Challenge";
+        this.description = "Rắn không thể đi xuyên qua các cạnh bản đồ. Va chạm với tường hoặc cắn vào thân sẽ thua.";
+
+        this.targetFood = 20;
+        this.winCondition = `Ăn đủ ${this.targetFood} food để chiến thắng.`;
+
+        this.countFood = 0;
+    }
+
+    getNextHead(head, direction) {
+        return {
+            x: head.x + direction.x,
+            y: head.y + direction.y
+        };
+    }
+
+    wallCollision(nextHead) {
+        return (nextHead.x < 0 || nextHead.x >= BOARD_CONFIG.WIDTH || nextHead.y < 0 || nextHead.y >= BOARD_CONFIG.HEIGHT);
+    }
+
+    update(snakeT, foodT) {
+        const head = snakeT.body[0];
+        const nextHead = this.getNextHead(head, snakeT.nextDirection);
+        if (this.wallCollision(nextHead)) {
+            return "gameover";
+        }
+        const shouldGrow = nextHead.x === foodT.position.x && nextHead.y === foodT.position.y;
+        if (snakeT.selfCollision(nextHead, shouldGrow)) {
+            return "gameover";
+        }
+        snakeT.move(nextHead, shouldGrow);
+        if (shouldGrow) {
+            this.countFood++;
+            if (this.countFood >= this.targetFood) {
+                foodT.position = null;
+                return "win";
+            }
+            foodT.spawn(snakeT.body);
+        }
+        return "playing";
+    }
+}
 // Render Default
 class Renderer {
     constructor() {
@@ -160,21 +215,21 @@ class Renderer {
         return this.cells[index];
     }
 
-    render(snakeT, foodT, level1T, gameStatus) {
+    render(snakeT, foodT, level, gameStatus) {
         this.clearBoard();
         this.renderFood(foodT);
         this.renderSnake(snakeT);
-        this.score.textContent = `Food: ${level1T.countFood}`;
+        this.score.textContent = `Food: ${level.countFood}`;
         this.status.textContent = gameStatus;
-        this.renderLevelInfo(level1T);
+        this.renderLevelInfo(level);
     }
 
-    renderLevelInfo(level1T) {
-        this.currentLevel.textContent = level1T.name;
-        this.levelNumber.textContent = level1T.name;
-        this.levelTitle.textContent = level1T.title;
-        this.levelDescription.textContent = level1T.description;
-        this.winCondition.textContent = level1T.winCondition;
+    renderLevelInfo(level) {
+        this.currentLevel.textContent = level.name;
+        this.levelNumber.textContent = level.name;
+        this.levelTitle.textContent = level.title;
+        this.levelDescription.textContent = level.description;
+        this.winCondition.textContent = level.winCondition;
     }
 
     clearBoard() {
@@ -204,13 +259,9 @@ class Renderer {
 }
 
 // main control
-const snake = Snake;
-const food = Food;
-const level1 = Level1;
-
 let snakeT;
 let foodT;
-let level1T;
+let currentLevel;
 let renderer;
 
 let gameStatus = "ready";
@@ -218,7 +269,7 @@ let gameLoop = null;
 let speed = 200;
 let directionChanged = false;
 
-function startGame(level1T, snakeT, foodT) {
+function startGame(level, snakeT, foodT) {
     if (gameStatus !== "ready" && gameStatus !== "paused") {
         return;
     }
@@ -227,23 +278,26 @@ function startGame(level1T, snakeT, foodT) {
     }
     gameStatus = "playing";
     directionChanged = false;
-    renderer.render(snakeT, foodT, level1T, gameStatus);
-    gameLoop = setInterval(() => { play(level1T, snakeT, foodT); }, speed);
+    renderer.render(snakeT, foodT, level, gameStatus);
+    gameLoop = setInterval(() => { play(level, snakeT, foodT); }, speed);
 }
 
-function play(level1T, snakeT, foodT) {
+function play(level, snakeT, foodT) {
     if (gameStatus !== "playing") {
         return;
     }
-    const status = level1T.update(snakeT, foodT);
+    const status = level.update(snakeT, foodT);
     gameStatus = status;
     directionChanged = false;
-    renderer.render(snakeT, foodT, level1T, gameStatus);
+    renderer.render(snakeT, foodT, level, gameStatus);
     console.log("Status:", gameStatus);
     console.log("Snake head:", snakeT.body[0]);
     if (status === "win" || status === "gameover") {
         stopGameLoop();
         setTimeout(() => {
+            if (gameStatus !== status || currentLevel !== level) {
+                return;
+            }
             if (status === "win") {
                 alert("YOU WIN");
             } else {
@@ -259,23 +313,20 @@ function pauseGame() {
     }
     stopGameLoop();
     gameStatus = "paused";
-    renderer.render(snakeT, foodT, level1T, gameStatus);
+    renderer.render(snakeT, foodT, currentLevel, gameStatus);
     console.log("Game Paused");
 }
 
-function resumeGame(level1T, snakeT, foodT) {
+function resumeGame(currentLevel, snakeT, foodT) {
     if (gameStatus !== "paused") {
         return;
     }
-    startGame(level1T, snakeT, foodT);
+    startGame(currentLevel, snakeT, foodT);
     console.log("Game Resumed");
 }
 
 function restartGame() {
     const settings = getGameSettings();
-    if (settings.level !== 1) {
-        throw new Error("Level này chưa được hỗ trợ");
-    }
     stopGameLoop();
     initializeGame(settings);
     document.getElementById("level-select").disabled = false;
@@ -290,54 +341,100 @@ function stopGameLoop() {
         gameLoop = null;
     }
 }
-
+// Game settings
 function getGameSettings() {
     const level = Number(document.getElementById("level-select").value);
     const length = Number(document.getElementById("snake-length").value);
     const selectedSpeed = Number(document.getElementById("game-speed").value);
-    if (!Number.isInteger(length) || length < 3 || length > 10) {
+    if (!Number.isInteger(length) || length < SNAKE_LIMIT.MIN_LENGTH || length > SNAKE_LIMIT.MAX_LENGTH) {
         throw new Error("Snake length must be between 3 and 10");
     }
-    if (!Number.isInteger(selectedSpeed) || selectedSpeed < 50 || selectedSpeed > 300) {
+    if (!Number.isInteger(selectedSpeed) || selectedSpeed < SNAKE_LIMIT.MIN_SPEED || selectedSpeed > SNAKE_LIMIT.MAX_SPEED) {
         throw new Error("Speed must be between 50 and 300ms");
     }
     return { level, length, speed: selectedSpeed };
 }
 
 function initializeGame(settings = getGameSettings()) {
-    if (settings.level !== 1) {
-        throw new Error("Level này chưa được hỗ trợ");
-    }
+    stopGameLoop();
     speed = settings.speed;
+    switch (settings.level) {
+        case 1:
+            currentLevel = new Level1();
+            break;
+        case 2:
+            currentLevel = new Level2();
+            break;
+        default:
+            throw new Error("Level này chưa được hỗ trợ");
+    }
     snakeT.reset(settings.length);
     foodT.spawn(snakeT.body);
-    level1T.countFood = 0;
     gameStatus = "ready";
     directionChanged = false;
-    renderer.render(snakeT, foodT, level1T, gameStatus);
+    renderer.render(snakeT, foodT, currentLevel, gameStatus);
 }
 
 function initGameApp() {
     snakeT = new Snake();
     foodT = new Food();
-    level1T = new Level1();
     renderer = new Renderer();
+
+    const levelSelect = document.getElementById("level-select");
+    const levelButtons = document.querySelectorAll(".level-btn");
+    const startBtn = document.getElementById("start-btn");
+    const pauseBtn = document.getElementById("pause-btn");
+    const restartBtn = document.getElementById("restart-btn");
+    const snakeLengthSelect = document.getElementById("snake-length");
+    const gameSpeedSelect = document.getElementById("game-speed");
 
     initializeGame();
 
-    // key set
+    function updateLevelButtons() {
+        const selectedLevel = Number(levelSelect.value);
+        levelButtons.forEach(button => {
+            const buttonLevel = Number(button.dataset.level);
+            button.classList.toggle(
+                "active",
+                buttonLevel === selectedLevel
+            );
+        });
+    }
+    updateLevelButtons();
+
+    levelButtons.forEach(button => {
+        button.addEventListener("click", () => {
+            if (gameStatus !== "ready") {
+                return;
+            }
+            if (button.disabled) {
+                return;
+            }
+            const selectedLevel = Number(button.dataset.level);
+            if (selectedLevel !== 1 && selectedLevel !== 2) {
+                return;
+            }
+            levelSelect.value = String(selectedLevel);
+            initializeGame();
+            updateLevelButtons();
+        });
+    });
+
+    //key set
     document.addEventListener("keydown", (event) => {
         const activeElement = document.activeElement;
-        if (activeElement && (activeElement.tagName === "INPUT" || activeElement.tagName === "SELECT" || activeElement.tagName === "TEXTAREA")) {
+        if (activeElement &&
+            (activeElement.tagName === "INPUT" || activeElement.tagName === "SELECT" || activeElement.tagName === "TEXTAREA")) {
             return;
         }
+
         if (event.code === "Enter") {
             event.preventDefault();
             if (event.repeat) {
                 return;
             }
             if (gameStatus === "ready") {
-                document.getElementById("start-btn").click();
+                startBtn.click();
             }
             return;
         }
@@ -350,7 +447,7 @@ function initGameApp() {
             if (gameStatus === "playing") {
                 pauseGame();
             } else if (gameStatus === "paused") {
-                resumeGame(level1T, snakeT, foodT);
+                resumeGame(currentLevel, snakeT, foodT);
             }
             return;
         }
@@ -360,7 +457,7 @@ function initGameApp() {
             if (event.repeat) {
                 return;
             }
-            document.getElementById("restart-btn").click();
+            restartBtn.click();
             return;
         }
 
@@ -373,25 +470,17 @@ function initGameApp() {
             ArrowDown: DIRECTIONS.DOWN,
             ArrowLeft: DIRECTIONS.LEFT,
             ArrowRight: DIRECTIONS.RIGHT,
+
             KeyW: DIRECTIONS.UP,
             KeyS: DIRECTIONS.DOWN,
             KeyA: DIRECTIONS.LEFT,
-            KeyD: DIRECTIONS.RIGHT,
-            w: DIRECTIONS.UP,
-            s: DIRECTIONS.DOWN,
-            a: DIRECTIONS.LEFT,
-            d: DIRECTIONS.RIGHT,
-            W: DIRECTIONS.UP,
-            S: DIRECTIONS.DOWN,
-            A: DIRECTIONS.LEFT,
-            D: DIRECTIONS.RIGHT
+            KeyD: DIRECTIONS.RIGHT
         };
 
-        const newDirection = keyMap[event.key] || keyMap[event.code];
+        const newDirection = keyMap[event.code];
         if (newDirection === undefined) {
             return;
         }
-
         event.preventDefault();
         if (directionChanged) {
             return;
@@ -404,33 +493,33 @@ function initGameApp() {
         }
     });
 
-    // click set
-    document.getElementById("start-btn").addEventListener("click", () => {
+    startBtn.addEventListener("click", () => {
         if (gameStatus !== "ready") {
             return;
         }
         try {
             initializeGame();
-            startGame(level1T, snakeT, foodT);
-            document.getElementById("level-select").disabled = true;
-            document.getElementById("snake-length").disabled = true;
-            document.getElementById("game-speed").disabled = true;
+            startGame(currentLevel, snakeT, foodT);
+            levelSelect.disabled = true;
+            snakeLengthSelect.disabled = true;
+            gameSpeedSelect.disabled = true;
         } catch (error) {
             alert(error.message);
         }
     });
 
-    document.getElementById("pause-btn").addEventListener("click", () => {
+    pauseBtn.addEventListener("click", () => {
         if (gameStatus === "playing") {
             pauseGame();
         } else if (gameStatus === "paused") {
-            resumeGame(level1T, snakeT, foodT);
+            resumeGame(currentLevel, snakeT, foodT);
         }
     });
 
-    document.getElementById("restart-btn").addEventListener("click", () => {
+    restartBtn.addEventListener("click", () => {
         try {
             restartGame();
+            updateLevelButtons();
         } catch (error) {
             alert(error.message);
         }
