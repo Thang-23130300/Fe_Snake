@@ -272,8 +272,7 @@ class Level3 extends Level2 {
             const specialType = specialFood.type;
             if (specialType === "speed" || specialType === "slow") {
                 this.activateEffect(specialType);
-            }
-            else if (specialType === "peach") {
+            } else if (specialType === "peach") {
                 this.countFood += 4;
                 console.log(`Peach: 4 điểm`);
             }
@@ -284,21 +283,23 @@ class Level3 extends Level2 {
             this.normalFoodEaten += 1;
         }
         if (this.countFood >= this.targetFood) {
-                foodT.position = null;
-                this.specialFood.clear();
-                return "win";
-            }
-        const blockedCells = [];
-        if (this.specialFood.position !== null) {
-            blockedCells.push(this.specialFood.position);
-        }
-        const spawned = foodT.spawn(snakeT.body, blockedCells);
-        if (!spawned) {
+            foodT.position = null;
+            this.specialFood.clear();
             return "win";
         }
-        if (this.normalFoodEaten % 5 === 0) {
-            this.specialFood.spawn(snakeT.body, foodT.position);
+        if (shouldGrow) {
+            const blockedCells = [];
+            if (this.specialFood.position !== null) {
+                blockedCells.push(this.specialFood.position);
             }
+            const spawned = foodT.spawn(snakeT.body, blockedCells);
+            if (!spawned) {
+                return "win";
+            }
+            if (this.normalFoodEaten % 5 === 0) {
+                this.specialFood.spawn(snakeT.body, foodT.position);
+            }
+        }
         return "playing";
     }
 }
