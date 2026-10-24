@@ -62,6 +62,7 @@ class Snake {
 }
 
 // Food default
+// food normal
 class Food {
     constructor() {
         this.position = null;
@@ -85,6 +86,45 @@ class Food {
         const randomIndex = Math.floor(Math.random() * availableCells.length);
         this.position = availableCells[randomIndex];
         return true;
+    }
+}
+// special food
+class SpecialFood {
+    constructor() {
+        this.position = null;
+        this.type = null;
+        this.types = ["speed", "slow", "poison", "peach"];
+    }
+
+    spawn(snakeBody, normalFoodPosition) {
+        const availableCells = [];
+
+        for (let y = 0; y < BOARD_CONFIG.HEIGHT; y++) {
+            for (let x = 0; x < BOARD_CONFIG.WIDTH; x++) {
+                const isOnSnake = snakeBody.some(segment => segment.x === x && segment.y === y);
+                const isOnNormalFood = normalFoodPosition !== null && normalFoodPosition.x === x && normalFoodPosition.y === y;
+                if (!isOnSnake && !isOnNormalFood) {
+                    availableCells.push({ x, y });
+                }
+            }
+        }
+
+        if (availableCells.length === 0) {
+            this.position = null;
+            this.type = null;
+            return false;
+        }
+
+        const randomPosition = Math.floor(Math.random() * availableCells.length);
+        const randomType = Math.floor(Math.random() * this.types.length);
+        this.position = availableCells[randomPosition];
+        this.type = this.types[randomType];
+        return true;
+    }
+
+    clear() {
+        this.position = null;
+        this.type = null;
     }
 }
 
@@ -178,6 +218,90 @@ class Level2 {
         return "playing";
     }
 }
+// lêvel 3
+class Level3 extends Level2 {
+    constructor() {
+        super();
+        this.name = "Level 3";
+        this.title = "Special Apple Challenge";
+        this.description = "Cứ ăn 5 táo thường sẽ xuất hiện 1 táo đặc biệt.";
+        this.targetFood = 36;
+        this.winCondition = `Đạt ${this.targetFood} điểm táo để chiến thắng.`;
+        this.countFood = 0;
+        this.normalFoodEaten = 0;
+        // key of level 3
+        this.specialFood = new SpecialFood();
+        this.activeEffect = null;
+    }
+
+    activateEffect(type) {
+        if (type !== "speed" && type !== "slow") {
+            return;
+        }
+        this.activeEffect = type;
+    }
+
+    getCurrentSpeed(baseSpeed) {
+        if (this.activeEffect === "speed") {
+            return Math.max(SNAKE_LIMIT.MIN_SPEED, Math.round(baseSpeed * 0.7));
+        }
+        if (this.activeEffect === "slow") {
+            return Math.min(SNAKE_LIMIT.MAX_SPEED, Math.round(baseSpeed * 1.3));
+        }
+        return baseSpeed;
+    }
+
+    update(snakeT, foodT) {
+        const head = snakeT.body[0];
+        const nextHead = this.getNextHead(head, snakeT.nextDirection);
+        if (this.wallCollision(nextHead)) {
+            return "gameover";
+        }
+        const shouldGrow = foodT.position !== null && nextHead.x === foodT.position.x && nextHead.y === foodT.position.y;
+        if (snakeT.selfCollision(nextHead, shouldGrow)) {
+            return "gameover";
+        }
+        const specialFood = this.specialFood;
+        const eatSpecial = specialFood.position !== null && nextHead.x === specialFood.position.x && nextHead.y === specialFood.position.y;
+        if (eatSpecial && specialFood.type === "poison") {
+            console.log("Game Over: Poison Apple");
+            return "gameover";
+        }
+        snakeT.move(nextHead, shouldGrow);
+        if (eatSpecial) {
+            const specialType = specialFood.type;
+            if (specialType === "speed" || specialType === "slow") {
+                this.activateEffect(specialType);
+            }
+            else if (specialType === "peach") {
+                this.countFood += 4;
+                console.log(`Peach: 4 điểm`);
+            }
+            specialFood.clear();
+        }
+        if (shouldGrow) {
+            this.countFood += 1;
+            this.normalFoodEaten += 1;
+        }
+        if (this.countFood >= this.targetFood) {
+                foodT.position = null;
+                this.specialFood.clear();
+                return "win";
+            }
+        const blockedCells = [];
+        if (this.specialFood.position !== null) {
+            blockedCells.push(this.specialFood.position);
+        }
+        const spawned = foodT.spawn(snakeT.body, blockedCells);
+        if (!spawned) {
+            return "win";
+        }
+        if (this.normalFoodEaten % 5 === 0) {
+            this.specialFood.spawn(snakeT.body, foodT.position);
+            }
+        return "playing";
+    }
+}
 // Render Default
 class Renderer {
     constructor() {
@@ -217,6 +341,7 @@ class Renderer {
         this.clearBoard();
         this.board.classList.toggle("level-2-board", level instanceof Level2);
         this.renderFood(foodT);
+        this.renderSpecialFood(level);
         this.renderSnake(snakeT);
         this.score.textContent = `Food: ${level.countFood}`;
         this.status.textContent = gameStatus;
@@ -255,6 +380,22 @@ class Renderer {
             cell.classList.add("food");
         }
     }
+    renderSpecialFood(level) {
+        if (!(level instanceof Level3)) {
+            return;
+        }
+        const specialFood = level.specialFood;
+        if (specialFood.position === null) {
+            return;
+        }
+        const { x, y } = specialFood.position;
+        const cell = this.getCell(x, y);
+        if (!cell) {
+            return;
+        }
+        cell.classList.add("special-food");
+        cell.classList.add(`special-${specialFood.type}`);
+    }
 }
 
 // main control
@@ -268,6 +409,14 @@ let gameLoop = null;
 let speed = 200;
 let directionChanged = false;
 
+function scheduleNextTick(level, snakeT, foodT) {
+    let currentSpeed = speed;
+    if (level instanceof Level3) {
+        currentSpeed = level.getCurrentSpeed(speed);
+    }
+    gameLoop = setTimeout(() => {gameLoop = null;play(level, snakeT, foodT);}, currentSpeed);
+}
+
 function startGame(level, snakeT, foodT) {
     if (gameStatus !== "ready" && gameStatus !== "paused") {
         return;
@@ -278,7 +427,7 @@ function startGame(level, snakeT, foodT) {
     gameStatus = "playing";
     directionChanged = false;
     renderer.render(snakeT, foodT, level, gameStatus);
-    gameLoop = setInterval(() => { play(level, snakeT, foodT); }, speed);
+    scheduleNextTick(level, snakeT, foodT);
 }
 
 function play(level, snakeT, foodT) {
@@ -291,6 +440,10 @@ function play(level, snakeT, foodT) {
     renderer.render(snakeT, foodT, level, gameStatus);
     console.log("Status:", gameStatus);
     console.log("Snake head:", snakeT.body[0]);
+    if (status === "playing") {
+        scheduleNextTick(level, snakeT, foodT);
+        return;
+    }
     if (status === "win" || status === "gameover") {
         stopGameLoop();
         setTimeout(() => {
@@ -336,7 +489,7 @@ function restartGame() {
 
 function stopGameLoop() {
     if (gameLoop !== null) {
-        clearInterval(gameLoop);
+        clearTimeout(gameLoop);
         gameLoop = null;
     }
 }
@@ -363,6 +516,9 @@ function initializeGame(settings = getGameSettings()) {
             break;
         case 2:
             currentLevel = new Level2();
+            break;
+        case 3:
+            currentLevel = new Level3();
             break;
         default:
             throw new Error("Level này chưa được hỗ trợ");
@@ -410,7 +566,7 @@ function initGameApp() {
                 return;
             }
             const selectedLevel = Number(button.dataset.level);
-            if (selectedLevel !== 1 && selectedLevel !== 2) {
+            if (selectedLevel !== 1 && selectedLevel !== 2 && selectedLevel !== 3) {
                 return;
             }
             levelSelect.value = String(selectedLevel);

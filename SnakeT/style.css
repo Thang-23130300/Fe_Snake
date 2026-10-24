@@ -133,6 +133,18 @@ button:disabled {
     background: #f04e4e;
     border-radius: 0;
 }
+.special-speed {
+    background-color: #FFCC00;
+}
+.special-slow {
+    background-color: #3399FF;
+}
+.special-poison {
+    background-color: #9933CC;
+}
+.special-peach {
+    background-color: #FFAEC9;
+}
 .game-controls {
     display: flex;
     justify-content: space-between;
