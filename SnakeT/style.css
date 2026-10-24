@@ -145,6 +145,17 @@ button:disabled {
 .special-peach {
     background-color: #FFAEC9;
 }
+#game-board.dark-board {
+    background-color: #050505;
+}
+#game-board.dark-board .cell.dark-cell {
+    background: #050505;
+    border-color: #0a0a0a;
+    box-shadow: none;
+}
+#game-board.dark-board .cell.visible-cell {
+    border-color: #365640;
+}
 .game-controls {
     display: flex;
     justify-content: space-between;

@@ -303,6 +303,18 @@ class Level3 extends Level2 {
         return "playing";
     }
 }
+// level 4
+class Level4 extends Level3 {
+    constructor() {
+        super();
+        this.name = "Level 4";
+        this.title = "Dark Vision";
+        this.description = "Bản đồ chìm trong bóng tối. Chỉ vùng 3x3 quanh đầu rắn và các quả táo được chiếu sáng.";
+        this.targetFood = 36;
+        this.winCondition = `Đạt ${this.targetFood} điểm để chiến thắng.`;
+        this.visionRadius = 1;
+    }
+}
 // Render Default
 class Renderer {
     constructor() {
@@ -341,9 +353,11 @@ class Renderer {
     render(snakeT, foodT, level, gameStatus) {
         this.clearBoard();
         this.board.classList.toggle("level-2-board", level instanceof Level2);
+        this.board.classList.toggle("dark-board", level instanceof Level4);
         this.renderFood(foodT);
         this.renderSpecialFood(level);
         this.renderSnake(snakeT);
+        this.renderDarkness(snakeT, foodT, level);
         this.score.textContent = `Food: ${level.countFood}`;
         this.status.textContent = gameStatus;
         this.renderLevelInfo(level);
@@ -359,7 +373,9 @@ class Renderer {
 
     clearBoard() {
         for (const cell of this.cells) {
-            cell.className = "cell";
+            cell.classList.remove("snake", "snake-head", "food",
+                "special-food", "special-speed", "special-slow", "special-poison", "special-peach",
+                "dark-cell", "visible-cell");
         }
     }
 
@@ -396,6 +412,38 @@ class Renderer {
         }
         cell.classList.add("special-food");
         cell.classList.add(`special-${specialFood.type}`);
+    }
+    // key of level 4
+    illuminateArea(position, radius = 1) {
+        if (!position) {
+            return;
+        }
+        for (let y = position.y - radius; y <= position.y + radius; y++) {
+            for (let x = position.x - radius; x <= position.x + radius; x++) {
+                if (x < 0 || x >= BOARD_CONFIG.WIDTH || y < 0 || y >= BOARD_CONFIG.HEIGHT) {
+                    continue;
+                }
+                const cell = this.getCell(x, y);
+                if (!cell) {
+                    continue;
+                }
+                cell.classList.remove("dark-cell");
+                cell.classList.add("visible-cell");
+            }
+        }
+    }
+    renderDarkness(snakeT, foodT, level) {
+        if (!(level instanceof Level4)) {
+            return;
+        }
+        for (const cell of this.cells) {
+            cell.classList.remove("visible-cell");
+            cell.classList.add("dark-cell");
+        }
+        const radius = level.visionRadius;
+        this.illuminateArea(snakeT.body[0], radius);
+        this.illuminateArea(foodT.position, radius);
+        this.illuminateArea(level.specialFood.position, radius);
     }
 }
 
@@ -521,6 +569,9 @@ function initializeGame(settings = getGameSettings()) {
         case 3:
             currentLevel = new Level3();
             break;
+        case 4:
+            currentLevel = new Level4();
+            break;
         default:
             throw new Error("Level này chưa được hỗ trợ");
     }
@@ -567,7 +618,7 @@ function initGameApp() {
                 return;
             }
             const selectedLevel = Number(button.dataset.level);
-            if (selectedLevel !== 1 && selectedLevel !== 2 && selectedLevel !== 3) {
+            if (selectedLevel !== 1 && selectedLevel !== 2 && selectedLevel !== 3 && selectedLevel !== 4) {
                 return;
             }
             levelSelect.value = String(selectedLevel);
