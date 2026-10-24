@@ -22,8 +22,9 @@ class Snake {
     }
 
     reset(length = 3) {
+        this.length = length;
         this.body = [];
-        const startX = Math.max(length - 1, 5);
+        const startX = Math.max(length , 5);
         const startY = Math.floor(BOARD_CONFIG.HEIGHT / 2);
         for (let i = 0; i < length; i++) {
             this.body.push({x: startX - i, y: startY});
@@ -94,7 +95,7 @@ class Level1 {
         this.name = "Level 1";
         this.title = "Classic Snake";
         this.description = "Rắn có thể đi xuyên qua các cạnh của bản đồ và xuất hiện ở cạnh đối diện.";
-        this.targetFood = 20;
+        this.targetFood = 36;
         this.winCondition = `Ăn đủ ${this.targetFood} food để chiến thắng.`;
         this.countFood = 0;
     }
@@ -117,13 +118,13 @@ class Level1 {
             shouldGrow = true;
         }
         const isLose = snakeT.selfCollision(nextHead, shouldGrow);
-        if (isLose == true) {
+        if (isLose) {
             console.log("Game Over");
             return "gameover";
         } else {
             snakeT.move(nextHead, shouldGrow);
         }
-        if (shouldGrow == true) {
+        if (shouldGrow) {
             this.countFood += 1;
             if (this.countFood >= this.targetFood) {
                 foodT.position = null ;
@@ -140,22 +141,19 @@ class Level2 {
         this.name = "Level 2";
         this.title = "Wall Challenge";
         this.description = "Rắn không thể đi xuyên qua các cạnh bản đồ. Va chạm với tường hoặc cắn vào thân sẽ thua.";
-
-        this.targetFood = 20;
+        this.targetFood = 36;
         this.winCondition = `Ăn đủ ${this.targetFood} food để chiến thắng.`;
-
         this.countFood = 0;
     }
 
     getNextHead(head, direction) {
         return {
-            x: head.x + direction.x,
-            y: head.y + direction.y
+            x: head.x + direction.x, y: head.y + direction.y
         };
     }
 
     wallCollision(nextHead) {
-        return (nextHead.x < 0 || nextHead.x >= BOARD_CONFIG.WIDTH || nextHead.y < 0 || nextHead.y >= BOARD_CONFIG.HEIGHT);
+        return (nextHead.x < 0 || nextHead.x >= BOARD_CONFIG.WIDTH || nextHead.y < 0 || nextHead.y >= BOARD_CONFIG.HEIGHT );
     }
 
     update(snakeT, foodT) {
@@ -217,6 +215,7 @@ class Renderer {
 
     render(snakeT, foodT, level, gameStatus) {
         this.clearBoard();
+        this.board.classList.toggle("level-2-board", level instanceof Level2);
         this.renderFood(foodT);
         this.renderSnake(snakeT);
         this.score.textContent = `Food: ${level.countFood}`;
@@ -303,7 +302,7 @@ function play(level, snakeT, foodT) {
             } else {
                 alert("GAME OVER");
             }
-        }, 100);
+        }, 50);
         }
 }
 

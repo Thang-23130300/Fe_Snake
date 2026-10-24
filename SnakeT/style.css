@@ -147,6 +147,13 @@ button:disabled {
     text-align: center;
     font-size: 13px;
 }
+/* level 2 wall */
+#game-board.level-2-board {
+    border: 5px solid #777777;
+    box-shadow:
+            0 0 0 2px #333333,
+            0 0 15px rgba(0, 0, 0, 0.5);
+}
 .game-settings {
     display: flex;
     flex-direction: column;
