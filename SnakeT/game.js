@@ -17,20 +17,22 @@ const DIRECTIONS = {
 // Snake default
 class Snake {
     constructor(length = 3) {
-        this.length = length;
         this.reset(length);
     }
+    get length() {
+        return this.body.length;
+    }
 
-    reset(length = 3) {
-        this.length = length;
+    reset(length = 3,
+          startX = Math.max(length, 5),
+          startY = Math.floor(BOARD_CONFIG.HEIGHT / 2),
+          direction = DIRECTIONS.RIGHT) {
         this.body = [];
-        const startX = Math.max(length , 5);
-        const startY = Math.floor(BOARD_CONFIG.HEIGHT / 2);
         for (let i = 0; i < length; i++) {
-            this.body.push({x: startX - i, y: startY});
+            this.body.push({x: startX - direction.x * i, y: startY - direction.y * i});
         }
-        this.direction = DIRECTIONS.RIGHT;
-        this.nextDirection = DIRECTIONS.RIGHT;
+        this.direction = direction;
+        this.nextDirection = direction;
     }
 
     setDirection(newDirection) {
@@ -343,7 +345,6 @@ class Level5 extends Level2 {
         this.snake2.direction = DIRECTIONS.LEFT;
         this.snake2.nextDirection = DIRECTIONS.LEFT;
         this.activeSnake = 1;
-        this.snakeStatus = {1: "playing", 2: "paused"};
     }
 
     getActiveSnake() {
@@ -354,31 +355,22 @@ class Level5 extends Level2 {
         return this.activeSnake === 1 ? this.snake2 : this.snake1;
     }
 
+    getSnakeStatus(snakeId) {
+        return this.activeSnake === snakeId ? "playing" : "paused";
+    }
+
     getAllSnakeBodies() {
         return [...this.snake1.body, ...this.snake2.body];
     }
 
     switchSnake() {
-        const previousSnake = this.activeSnake;
-        const nextSnake = previousSnake === 1 ? 2 : 1;
-        this.snakeStatus[previousSnake] = "paused";
-        this.snakeStatus[nextSnake] = "playing";
-        this.activeSnake = nextSnake;
+        this.activeSnake = this.activeSnake === 1 ? 2 : 1;
     }
+
     resetSnakes(length) {
-        this.snake1.body = [];
-        this.snake2.body = [];
-        for (let i = 0; i < length; i++) {
-            this.snake1.body.push({x: length + 1 - i, y: 4});
-        }
-        for (let i = 0; i < length; i++) {
-            this.snake2.body.push({x: 15 - length + i, y: 10});
-        }
-        this.snake1.nextDirection = DIRECTIONS.RIGHT;
-        this.snake2.direction = DIRECTIONS.LEFT;
-        this.snake2.nextDirection = DIRECTIONS.LEFT;
+        this.snake1.reset(length, length + 1, 4, DIRECTIONS.RIGHT);
+        this.snake2.reset(length, 15 - length, 10, DIRECTIONS.LEFT);
         this.activeSnake = 1;
-        this.snakeStatus = {1: "playing", 2: "paused"};
         this.countFood = 0;
     }
 
@@ -673,7 +665,7 @@ class Renderer {
     renderDualSnake(level) {
         const snakes = [{id: 1, snake: level.snake1}, {id: 2, snake: level.snake2}];
         snakes.forEach(({ id, snake }) => {
-            const isActive = level.snakeStatus[id] === "playing";
+            const isActive = level.activeSnake === id;
             snake.body.forEach((segment, index) => {
                 const cell = this.getCell(segment.x, segment.y);
                 if (!cell) {
@@ -709,6 +701,29 @@ class Renderer {
         }
     }
 }
+//game control
+class GameController {
+    constructor() {
+        this.timer = null;
+    }
+    schedule(callback, delay) {
+        if (this.timer !== null) {
+            return false;
+        }
+        this.timer = setTimeout(() => {this.timer = null;callback();}, delay);
+        return true;
+    }
+
+    stop() {
+        if (this.timer !== null) {clearTimeout(this.timer);
+            this.timer = null;
+        }
+    }
+
+    isRunning() {
+        return this.timer !== null;
+    }
+}
 
 // main control
 let snakeT;
@@ -717,7 +732,7 @@ let currentLevel;
 let renderer;
 
 let gameStatus = "ready";
-let gameLoop = null;
+const gameController = new GameController();
 let speed = 200;
 let directionChanged = false;
 
@@ -726,14 +741,14 @@ function scheduleNextTick(level, snakeT, foodT) {
     if (level instanceof Level3) {
         currentSpeed = level.getCurrentSpeed(speed);
     }
-    gameLoop = setTimeout(() => {gameLoop = null;play(level, snakeT, foodT);}, currentSpeed);
+    gameController.schedule(() => {play(level, snakeT, foodT);}, currentSpeed);
 }
 
 function startGame(level, snakeT, foodT) {
     if (gameStatus !== "ready" && gameStatus !== "paused") {
         return;
     }
-    if (gameLoop !== null) {
+    if (gameController.isRunning()) {
         return;
     }
     gameStatus = "playing";
@@ -758,7 +773,8 @@ function play(level, snakeT, foodT) {
     directionChanged = false;
     renderer.render(snakeT, foodT, level, gameStatus);
     console.log("Status:", gameStatus);
-    console.log("Snake head:", snakeT.body[0]);
+    const controlledSnake = getControlledSnake();
+    console.log("Snake head:", controlledSnake ? controlledSnake.body[0] : null);
     if (status === "playing") {
         scheduleNextTick(level, snakeT, foodT);
         return;
@@ -807,11 +823,9 @@ function restartGame() {
 }
 
 function stopGameLoop() {
-    if (gameLoop !== null) {
-        clearTimeout(gameLoop);
-        gameLoop = null;
-    }
+    gameController.stop();
 }
+
 // Game settings
 function getGameSettings() {
     const level = Number(document.getElementById("level-select").value);
