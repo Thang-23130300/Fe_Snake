@@ -365,6 +365,22 @@ class Level5 extends Level2 {
         this.snakeStatus[nextSnake] = "playing";
         this.activeSnake = nextSnake;
     }
+    resetSnakes(length) {
+        this.snake1.body = [];
+        this.snake2.body = [];
+        for (let i = 0; i < length; i++) {
+            this.snake1.body.push({x: length + 1 - i, y: 4});
+        }
+        for (let i = 0; i < length; i++) {
+            this.snake2.body.push({x: 15 - length + i, y: 10});
+        }
+        this.snake1.nextDirection = DIRECTIONS.RIGHT;
+        this.snake2.direction = DIRECTIONS.LEFT;
+        this.snake2.nextDirection = DIRECTIONS.LEFT;
+        this.activeSnake = 1;
+        this.snakeStatus = {1: "playing", 2: "paused"};
+        this.countFood = 0;
+    }
 
     otherSnakeCollision(nextHead, otherSnake) {
         return otherSnake.body.some(segment => segment.x === nextHead.x && segment.y === nextHead.y);
@@ -715,6 +731,7 @@ function initializeGame(settings = getGameSettings()) {
     }
     snakeT.reset(settings.length);
     if (currentLevel instanceof Level5) {
+        currentLevel.resetSnakes(settings.length);
         foodT.spawn(currentLevel.getAllSnakeBodies());
     } else {
         foodT.spawn(snakeT.body);
