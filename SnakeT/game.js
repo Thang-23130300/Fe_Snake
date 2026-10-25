@@ -315,6 +315,94 @@ class Level4 extends Level3 {
         this.visionRadius = 1;
     }
 }
+// level 5
+class Level5 extends Level2 {
+    constructor() {
+        super();
+        this.name = "Level 5";
+        this.title = "Dual Snake";
+        this.description = "Điều khiển hai con rắn luân phiên. Mỗi lần ăn táo sẽ đổi lượt.";
+        this.targetFood = 36;
+        this.countFood = 0;
+        this.winCondition = `Hai con rắn ăn tổng cộng ${this.targetFood} táo để chiến thắng.`;
+        this.snake1 = new Snake(3);
+        this.snake2 = new Snake(3);
+        this.snake1.body = [
+            { x: 4, y: 4 },
+            { x: 3, y: 4 },
+            { x: 2, y: 4 }
+        ];
+        this.snake2.body = [
+            { x: 12, y: 10 },
+            { x: 13, y: 10 },
+            { x: 14, y: 10 }
+        ];
+
+        this.snake1.direction = DIRECTIONS.RIGHT;
+        this.snake1.nextDirection = DIRECTIONS.RIGHT;
+        this.snake2.direction = DIRECTIONS.LEFT;
+        this.snake2.nextDirection = DIRECTIONS.LEFT;
+        this.activeSnake = 1;
+        this.snakeStatus = {1: "playing", 2: "paused"};
+    }
+
+    getActiveSnake() {
+        return this.activeSnake === 1 ? this.snake1 : this.snake2;
+    }
+
+    getInactiveSnake() {
+        return this.activeSnake === 1 ? this.snake2 : this.snake1;
+    }
+
+    getAllSnakeBodies() {
+        return [...this.snake1.body, ...this.snake2.body];
+    }
+
+    switchSnake() {
+        const previousSnake = this.activeSnake;
+        const nextSnake = previousSnake === 1 ? 2 : 1;
+        this.snakeStatus[previousSnake] = "paused";
+        this.snakeStatus[nextSnake] = "playing";
+        this.activeSnake = nextSnake;
+    }
+
+    otherSnakeCollision(nextHead, otherSnake) {
+        return otherSnake.body.some(segment => segment.x === nextHead.x && segment.y === nextHead.y);
+    }
+
+    update(snakeT, foodT) {
+        const activeSnake = this.getActiveSnake();
+        const inactiveSnake = this.getInactiveSnake();
+        const head = activeSnake.body[0];
+        const nextHead = this.getNextHead(head, activeSnake.nextDirection);
+        if (this.wallCollision(nextHead)) {
+            return "gameover";
+        }
+        const shouldGrow = foodT.position !== null && nextHead.x === foodT.position.x && nextHead.y === foodT.position.y;
+        if (activeSnake.selfCollision(nextHead, shouldGrow)) {
+            return "gameover";
+        }
+        if (this.otherSnakeCollision(nextHead, inactiveSnake)) {
+            return "gameover";
+        }
+        activeSnake.move(nextHead, shouldGrow);
+        if (shouldGrow) {
+            this.countFood++;
+            if (this.countFood >= this.targetFood) {
+                foodT.position = null;
+                return "win";
+            }
+            const spawned = foodT.spawn(
+                this.getAllSnakeBodies()
+            );
+            if (!spawned) {
+                return "gameover";
+            }
+            this.switchSnake();
+        }
+        return "playing";
+    }
+}
 // Render Default
 class Renderer {
     constructor() {
@@ -356,7 +444,11 @@ class Renderer {
         this.board.classList.toggle("dark-board", level instanceof Level4);
         this.renderFood(foodT);
         this.renderSpecialFood(level);
-        this.renderSnake(snakeT);
+        if (level instanceof Level5) {
+            this.renderDualSnake(level);
+        } else {
+            this.renderSnake(snakeT);
+        }
         this.renderDarkness(snakeT, foodT, level);
         this.score.textContent = `Food: ${level.countFood}`;
         this.status.textContent = gameStatus;
@@ -375,7 +467,10 @@ class Renderer {
         for (const cell of this.cells) {
             cell.classList.remove("snake", "snake-head", "food",
                 "special-food", "special-speed", "special-slow", "special-poison", "special-peach",
-                "dark-cell", "visible-cell");
+                "dark-cell", "visible-cell",
+                "snake-1", "snake-2", "active-snake", "paused-snake"
+            );
+
         }
     }
 
@@ -441,9 +536,32 @@ class Renderer {
             cell.classList.add("dark-cell");
         }
         const radius = level.visionRadius;
-        this.illuminateArea(snakeT.body[0], radius);
+        this.illuminateArea(snakeT.body[0], radius + 1);
         this.illuminateArea(foodT.position, radius);
         this.illuminateArea(level.specialFood.position, radius);
+    }
+    renderDualSnake(level) {
+        const snakes = [{id: 1, snake: level.snake1}, {id: 2, snake: level.snake2}];
+        snakes.forEach(({ id, snake }) => {
+            const isActive = level.snakeStatus[id] === "playing";
+            snake.body.forEach((segment, index) => {
+                const cell = this.getCell(segment.x, segment.y);
+                if (!cell) {
+                    return;
+                }
+                cell.classList.add("snake");
+                cell.classList.add(`snake-${id}`);
+                if (isActive) {
+                    cell.classList.add("active-snake");
+                } else {
+                    cell.classList.add("paused-snake");
+                }
+                if (index === 0) {
+                    cell.classList.add("snake-head");
+                }
+            });
+
+        });
     }
 }
 
@@ -483,7 +601,14 @@ function play(level, snakeT, foodT) {
     if (gameStatus !== "playing") {
         return;
     }
+    const previousActiveSnake = level instanceof Level5 ? level.activeSnake : null;
     const status = level.update(snakeT, foodT);
+    if (level instanceof Level5) {
+        if (previousActiveSnake !== level.activeSnake) {
+            console.log(`Snake ${previousActiveSnake}: PAUSED`);
+            console.log(`Snake ${level.activeSnake}: PLAYING`);
+        }
+    }
     gameStatus = status;
     directionChanged = false;
     renderer.render(snakeT, foodT, level, gameStatus);
@@ -556,6 +681,16 @@ function getGameSettings() {
     return { level, length, speed: selectedSpeed };
 }
 
+function getControlledSnake() {
+    if (!currentLevel) {
+        return null;
+    }
+    if (currentLevel instanceof Level5) {
+        return currentLevel.getActiveSnake();
+    }
+    return snakeT;
+}
+
 function initializeGame(settings = getGameSettings()) {
     stopGameLoop();
     speed = settings.speed;
@@ -572,11 +707,18 @@ function initializeGame(settings = getGameSettings()) {
         case 4:
             currentLevel = new Level4();
             break;
+        case 5:
+            currentLevel = new Level5();
+            break;
         default:
             throw new Error("Level này chưa được hỗ trợ");
     }
     snakeT.reset(settings.length);
-    foodT.spawn(snakeT.body);
+    if (currentLevel instanceof Level5) {
+        foodT.spawn(currentLevel.getAllSnakeBodies());
+    } else {
+        foodT.spawn(snakeT.body);
+    }
     gameStatus = "ready";
     directionChanged = false;
     renderer.render(snakeT, foodT, currentLevel, gameStatus);
@@ -601,10 +743,7 @@ function initGameApp() {
         const selectedLevel = Number(levelSelect.value);
         levelButtons.forEach(button => {
             const buttonLevel = Number(button.dataset.level);
-            button.classList.toggle(
-                "active",
-                buttonLevel === selectedLevel
-            );
+            button.classList.toggle("active", buttonLevel === selectedLevel);
         });
     }
     updateLevelButtons();
@@ -618,7 +757,7 @@ function initGameApp() {
                 return;
             }
             const selectedLevel = Number(button.dataset.level);
-            if (selectedLevel !== 1 && selectedLevel !== 2 && selectedLevel !== 3 && selectedLevel !== 4) {
+            if (![1, 2, 3, 4, 5].includes(selectedLevel)) {
                 return;
             }
             levelSelect.value = String(selectedLevel);
@@ -692,10 +831,13 @@ function initGameApp() {
         if (directionChanged) {
             return;
         }
-
-        const oldDirection = snakeT.direction;
-        snakeT.setDirection(newDirection);
-        if (snakeT.nextDirection !== oldDirection) {
+        const controlledSnake = getControlledSnake();
+        if (!controlledSnake) {
+            return;
+        }
+        const oldDirection = controlledSnake.direction;
+        controlledSnake.setDirection(newDirection);
+        if (controlledSnake.nextDirection !== oldDirection) {
             directionChanged = true;
         }
     });
