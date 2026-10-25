@@ -329,17 +329,7 @@ class Level5 extends Level2 {
         this.winCondition = `Hai con rắn ăn tổng cộng ${this.targetFood} táo để chiến thắng.`;
         this.snake1 = new Snake(3);
         this.snake2 = new Snake(3);
-        this.snake1.body = [
-            { x: 4, y: 4 },
-            { x: 3, y: 4 },
-            { x: 2, y: 4 }
-        ];
-        this.snake2.body = [
-            { x: 12, y: 10 },
-            { x: 13, y: 10 },
-            { x: 14, y: 10 }
-        ];
-
+        this.resetSnakes(3);
         this.snake1.direction = DIRECTIONS.RIGHT;
         this.snake1.nextDirection = DIRECTIONS.RIGHT;
         this.snake2.direction = DIRECTIONS.LEFT;
