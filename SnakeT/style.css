@@ -199,6 +199,11 @@ button:disabled {
     text-align: center;
     font-size: 13px;
 }
+#game-board .cell.shrinking-wall {
+    background-color: #8b2635;
+    border: 1px solid #b84252;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+}
 /* level 2 wall */
 #game-board.level-2-board {
     border: 5px solid #777777;

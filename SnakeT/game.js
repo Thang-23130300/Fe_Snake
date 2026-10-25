@@ -419,6 +419,116 @@ class Level5 extends Level2 {
         return "playing";
     }
 }
+// level 6
+class Level6 extends Level2 {
+    constructor() {
+        super();
+        this.name = "Level 6";
+        this.title = "Shrinking Arena";
+        this.description = "Bản đồ sẽ thu hẹp khi bạn ăn đủ số táo.";
+        this.targetFood = 36;
+        this.countFood = 0;
+        this.winCondition = "Ăn đủ 36 quả táo để chiến thắng.";
+        this.boardWidth = BOARD_CONFIG.WIDTH;
+        this.boardHeight = BOARD_CONFIG.HEIGHT;
+        this.currentStage = 1;
+        this.shrinkLevel = 0;
+        this.shrinkMilestones = [8, 16, 24];
+        this.pendingShrink = false;
+        this.pendingShrinkCount = 0;
+    }
+    getArenaBounds() {
+        return {
+            minX: this.shrinkLevel, maxX: this.boardWidth - 1 - this.shrinkLevel,
+            minY: this.shrinkLevel, maxY: this.boardHeight - 1 - this.shrinkLevel};
+    }
+    wallCollision(position) {
+        const bounds = this.getArenaBounds();
+        return (position.x < bounds.minX || position.x > bounds.maxX || position.y < bounds.minY || position.y > bounds.maxY);
+    }
+    canShrink(snake) {
+        const nextShrinkLevel = this.shrinkLevel + 1;
+        const bounds = {
+            minX: nextShrinkLevel, maxX: this.boardWidth - 1 - nextShrinkLevel,
+            minY: nextShrinkLevel, maxY: this.boardHeight - 1 - nextShrinkLevel
+        };
+        return snake.body.every(segment => {
+            return (segment.x >= bounds.minX && segment.x <= bounds.maxX && segment.y >= bounds.minY && segment.y <= bounds.maxY);
+        });
+    }
+    checkShrinkMilestone() {
+        if (this.shrinkMilestones.includes(this.countFood)) {
+            this.pendingShrinkCount++;
+            this.pendingShrink = true;
+            console.log(`Shrink milestone reached: ${this.countFood} apples`);
+        }
+    }
+    applyPendingShrink(snake, food) {
+        if (this.pendingShrinkCount <= 0) {
+            return false;
+        }
+        if (!this.canShrink(snake)) {
+            return false;
+        }
+        this.shrinkLevel++;
+        this.currentStage = this.shrinkLevel + 1;
+        this.pendingShrinkCount--;
+        this.pendingShrink = this.pendingShrinkCount > 0;
+        if (food.position && !this.isInsideArena(food.position)) {
+            this.spawnFoodInArena(food, snake);
+        }
+        console.log(`Arena shrunk to Stage ${this.currentStage}`);
+        return true;
+    }
+    spawnFoodInArena(food, snake) {
+        const bounds = this.getArenaBounds();
+        const blockedCells = [];
+        for (let y = 0; y < this.boardHeight; y++) {
+            for (let x = 0; x < this.boardWidth; x++) {
+                const outsideArena = x < bounds.minX || x > bounds.maxX || y < bounds.minY || y > bounds.maxY;
+                if (outsideArena) {
+                    blockedCells.push({ x, y });
+                }
+            }
+        }
+        return food.spawn(snake.body, blockedCells);
+    }
+    isInsideArena(position, shrinkLevel = this.shrinkLevel) {
+        const minX = shrinkLevel;
+        const maxX = this.boardWidth - 1 - shrinkLevel;
+        const minY = shrinkLevel;
+        const maxY = this.boardHeight - 1 - shrinkLevel;
+        return (position.x >= minX && position.x <= maxX && position.y >= minY && position.y <= maxY);
+    }
+    update(snake, food) {
+        const head = snake.body[0];
+        const nextHead = this.getNextHead(head, snake.nextDirection);
+        if (this.wallCollision(nextHead)) {
+            return "gameover";
+        }
+        const shouldGrow = food.position !== null && nextHead.x === food.position.x && nextHead.y === food.position.y;
+        if (snake.selfCollision(nextHead, shouldGrow)) {
+            return "gameover";
+        }
+        snake.move(nextHead, shouldGrow);
+        if (shouldGrow) {
+            this.countFood++;
+            if (this.countFood >= this.targetFood) {
+                food.position = null;
+                return "win";
+            }
+            this.checkShrinkMilestone();
+        }
+        this.applyPendingShrink(snake, food);;
+        if (shouldGrow) {
+            const spawned = this.spawnFoodInArena(food, snake);
+            if (!spawned) {
+                return "gameover";
+            }
+        }
+        return "playing";
+    }
+}
 // Render Default
 class Renderer {
     constructor() {
@@ -465,6 +575,9 @@ class Renderer {
         } else {
             this.renderSnake(snakeT);
         }
+        if (level instanceof Level6) {
+            this.renderShrinkingWalls(level);
+        }
         this.renderDarkness(snakeT, foodT, level);
         this.score.textContent = `Food: ${level.countFood}`;
         this.status.textContent = gameStatus;
@@ -484,7 +597,8 @@ class Renderer {
             cell.classList.remove("snake", "snake-head", "food",
                 "special-food", "special-speed", "special-slow", "special-poison", "special-peach",
                 "dark-cell", "visible-cell",
-                "snake-1", "snake-2", "active-snake", "paused-snake"
+                "snake-1", "snake-2", "active-snake", "paused-snake",
+                "shrinking-wall"
             );
 
         }
@@ -578,6 +692,21 @@ class Renderer {
             });
 
         });
+    }
+    renderShrinkingWalls(level) {
+        const bounds = level.getArenaBounds();
+        for (let y = 0; y < BOARD_CONFIG.HEIGHT; y++) {
+            for (let x = 0; x < BOARD_CONFIG.WIDTH; x++) {
+                const isWall = x < bounds.minX || x > bounds.maxX || y < bounds.minY || y > bounds.maxY;
+                if (!isWall) {
+                    continue;
+                }
+                const cell = this.getCell(x, y);
+                if (cell) {
+                    cell.classList.add("shrinking-wall");
+                }
+            }
+        }
     }
 }
 
@@ -726,6 +855,9 @@ function initializeGame(settings = getGameSettings()) {
         case 5:
             currentLevel = new Level5();
             break;
+        case 6:
+            currentLevel = new Level6();
+            break;
         default:
             throw new Error("Level này chưa được hỗ trợ");
     }
@@ -733,8 +865,11 @@ function initializeGame(settings = getGameSettings()) {
     if (currentLevel instanceof Level5) {
         currentLevel.resetSnakes(settings.length);
         foodT.spawn(currentLevel.getAllSnakeBodies());
+    } else if (currentLevel instanceof Level6) {
+        currentLevel.spawnFoodInArena(foodT, snakeT);
     } else {
         foodT.spawn(snakeT.body);
+
     }
     gameStatus = "ready";
     directionChanged = false;
@@ -774,7 +909,7 @@ function initGameApp() {
                 return;
             }
             const selectedLevel = Number(button.dataset.level);
-            if (![1, 2, 3, 4, 5].includes(selectedLevel)) {
+            if (![1, 2, 3, 4, 5, 6].includes(selectedLevel)) {
                 return;
             }
             levelSelect.value = String(selectedLevel);
