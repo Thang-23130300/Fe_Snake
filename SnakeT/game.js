@@ -705,6 +705,7 @@ class Renderer {
 class GameController {
     constructor() {
         this.timer = null;
+        this.sessionId = 0;
     }
     schedule(callback, delay) {
         if (this.timer !== null) {
@@ -722,6 +723,76 @@ class GameController {
 
     isRunning() {
         return this.timer !== null;
+    }
+
+    start(level, snake, food) {
+        if (gameStatus !== "ready" && gameStatus !== "paused") {
+            return false;
+        }
+
+        if (this.isRunning()) {
+            return false;
+        }
+
+        gameStatus = "playing";
+        directionChanged = false;
+
+        renderer.render(snake, food, level, gameStatus);
+        scheduleNextTick(level, snake, food);
+
+        return true;
+    }
+
+    pause() {
+        if (gameStatus !== "playing") {
+            return false;
+        }
+        this.stop();
+        gameStatus = "paused";
+        renderer.render(snakeT, foodT, currentLevel, gameStatus);
+        return true;
+    }
+
+    resume(level, snake, food) {
+        if (gameStatus !== "paused") {
+            return false;
+        }
+        return this.start(level, snake, food);
+    }
+
+    restart(settings) {
+        this.stop();
+        this.invalidateSession();
+        initializeGame(settings);
+    }
+
+    finish(status, level) {
+        if (gameStatus !== "playing") {
+            return false;
+        }
+        if (status !== "win" && status !== "gameover") {
+            return false;
+        }
+        this.stop();
+        gameStatus = status;
+        const finishedSession = this.sessionId;
+        setTimeout(() => {
+            if (this.sessionId !== finishedSession) {
+                return;
+            }
+            if (gameStatus !== status || currentLevel !== level) {
+                return;
+            }
+            if (status === "win") {
+                alert("YOU WIN");
+            } else {
+                alert("GAME OVER");
+            }
+        }, 50);
+        return true;
+    }
+    invalidateSession() {
+        this.sessionId += 1;
     }
 }
 
@@ -744,17 +815,8 @@ function scheduleNextTick(level, snakeT, foodT) {
     gameController.schedule(() => {play(level, snakeT, foodT);}, currentSpeed);
 }
 
-function startGame(level, snakeT, foodT) {
-    if (gameStatus !== "ready" && gameStatus !== "paused") {
-        return;
-    }
-    if (gameController.isRunning()) {
-        return;
-    }
-    gameStatus = "playing";
-    directionChanged = false;
-    renderer.render(snakeT, foodT, level, gameStatus);
-    scheduleNextTick(level, snakeT, foodT);
+function startGame(level, snake, food) {
+    return gameController.start(level, snake, food);
 }
 
 function play(level, snakeT, foodT) {
@@ -769,7 +831,11 @@ function play(level, snakeT, foodT) {
             console.log(`Snake ${level.activeSnake}: PLAYING`);
         }
     }
-    gameStatus = status;
+    if (status === "win" || status === "gameover") {
+        gameController.finish(status, level);
+    } else {
+        gameStatus = status;
+    }
     directionChanged = false;
     renderer.render(snakeT, foodT, level, gameStatus);
     console.log("Status:", gameStatus);
@@ -779,43 +845,25 @@ function play(level, snakeT, foodT) {
         scheduleNextTick(level, snakeT, foodT);
         return;
     }
-    if (status === "win" || status === "gameover") {
-        stopGameLoop();
-        setTimeout(() => {
-            if (gameStatus !== status || currentLevel !== level) {
-                return;
-            }
-            if (status === "win") {
-                alert("YOU WIN");
-            } else {
-                alert("GAME OVER");
-            }
-        }, 50);
-        }
 }
 
 function pauseGame() {
-    if (gameStatus !== "playing") {
-        return;
+    const paused = gameController.pause();
+    if (paused) {
+        console.log("Game Paused");
     }
-    stopGameLoop();
-    gameStatus = "paused";
-    renderer.render(snakeT, foodT, currentLevel, gameStatus);
-    console.log("Game Paused");
 }
 
-function resumeGame(currentLevel, snakeT, foodT) {
-    if (gameStatus !== "paused") {
-        return;
+function resumeGame(level, snake, food) {
+    const resumed = gameController.resume(level, snake, food);
+    if (resumed) {
+        console.log("Game Resumed");
     }
-    startGame(currentLevel, snakeT, foodT);
-    console.log("Game Resumed");
 }
 
 function restartGame() {
     const settings = getGameSettings();
-    stopGameLoop();
-    initializeGame(settings);
+    gameController.restart(settings);
     document.getElementById("level-select").disabled = false;
     document.getElementById("snake-length").disabled = false;
     document.getElementById("game-speed").disabled = false;
